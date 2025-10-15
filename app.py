@@ -381,7 +381,7 @@ def main():
         clients_input = st.text_area(
             "Enter client names (one per line)",
             value="\n".join(DEFAULT_CLIENTS),
-            height=200
+            height=250
         )
         clients = [c.strip() for c in clients_input.split("\n") if c.strip()]
         
@@ -534,4 +534,5 @@ def main():
             logger.error(f"Scan error: {e}", exc_info=True)
 
 if __name__ == "__main__":
+
     main()
