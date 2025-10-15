@@ -1,0 +1,43 @@
+[theme]
+   primaryColor="#2F5597"
+   backgroundColor="#FFFFFF"
+   secondaryBackgroundColor="#F0F2F6"
+   textColor="#262730"
+   font="sans serif"
+```
+
+5. Scroll down and click **"Commit changes"**
+
+---
+
+### **Step 3: Verify Everything is There**
+
+Go back to your repository main page. You should see:
+- ✅ `app.py`
+- ✅ `requirements.txt`
+- ✅ `.streamlit/` folder (click on it to see `config.toml` inside)
+
+---
+
+## 🚀 **Next: Deploy to Streamlit Cloud**
+
+Once all files are uploaded:
+
+1. **Open a new tab** and go to: [share.streamlit.io](https://share.streamlit.io)
+
+2. Click **"New app"** (or "Create app")
+
+3. **Sign in with GitHub** (it will ask for permission - click "Authorize")
+
+4. Fill in the deployment form:
+   - **Repository:** `CalculatedMatters/rss-webapp`
+   - **Branch:** `main`
+   - **Main file path:** `app.py`
+
+5. Click **"Deploy!"**
+
+6. Wait 2-5 minutes while it builds (you'll see a cute balloon animation 🎈)
+
+7. Your app will be live at a URL like:
+```
+   https://rss-webapp-XXXXX.streamlit.app
