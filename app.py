@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 Client Mentions Monitor - Premium UI/UX Edition
-Beautiful, modern interface for monitoring client mentions across music news feeds
 """
 
 import streamlit as st
@@ -44,13 +43,9 @@ CURATED_DEFAULT_FEEDS = [
     "https://aaabackstage.com/feed/",
     "https://beat.com.au/music/feed/",
     "https://www.theguardian.com/music/australian-music/rss",
-    "https://thewest.com.au/entertainment/music/feed",
     "https://australianmusician.com.au/feed/",
     "https://www.noise11.com/feed/",
-    "https://www.cutcommonmag.com/feed/",
     "https://au.rollingstone.com/feed/",
-    "https://au.rollingstone.com/music/feed/",
-    "https://thehordern.com.au/feed/",
 ]
 
 DEFAULT_CLIENTS = [
@@ -159,7 +154,7 @@ def simple_retry(max_attempts=3, delay=1):
             for attempt in range(max_attempts):
                 try:
                     return func(*args, **kwargs)
-                except Exception as e:
+                except Exception:
                     if attempt == max_attempts - 1:
                         raise
                     time.sleep(delay)
@@ -404,317 +399,58 @@ def apply_premium_styling():
     """Apply modern, professional CSS styling"""
     st.markdown("""
         <style>
-        /* Import Google Fonts */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-        /* Global Styles */
-        html, body, [class*="css"] {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-
-        /* Main Container */
-        .main {
-            padding: 2rem 1rem;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        }
-
-        .block-container {
-            max-width: 1400px;
-            padding-top: 3rem;
-            padding-bottom: 3rem;
-        }
-
-        /* Header Styling */
-        h1 {
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-size: 3rem !important;
-            margin-bottom: 0.5rem !important;
-            letter-spacing: -0.02em;
-        }
-
-        h2 {
-            font-weight: 600;
-            color: #1a202c;
-            font-size: 1.75rem !important;
-            margin-top: 2rem !important;
-            margin-bottom: 1rem !important;
-        }
-
-        h3 {
-            font-weight: 600;
-            color: #2d3748;
-            font-size: 1.25rem !important;
-        }
-
-        /* Sidebar Styling */
-        [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%);
-            border-right: 1px solid #e2e8f0;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
-        }
-
-        [data-testid="stSidebar"] h2 {
-            color: #2d3748;
-            font-size: 1.25rem !important;
-            font-weight: 700;
-            padding-left: 0.5rem;
-            border-left: 4px solid #667eea;
-        }
-
-        [data-testid="stSidebar"] h3 {
-            color: #4a5568;
-            font-size: 1rem !important;
-            font-weight: 600;
-            margin-top: 1.5rem !important;
-        }
-
-        /* Text Area Styling */
-        .stTextArea textarea {
-            border-radius: 12px;
-            border: 2px solid #e2e8f0;
-            font-size: 0.9rem;
-            font-family: 'SF Mono', Monaco, monospace;
-            transition: all 0.3s ease;
-        }
-
-        .stTextArea textarea:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        /* Button Styling */
-        .stButton > button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 0.75rem 2rem;
-            font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            width: 100%;
-        }
-
-        .stButton > button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-        }
-
-        /* Metric Cards */
-        [data-testid="stMetricValue"] {
-            font-size: 2rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        [data-testid="stMetricLabel"] {
-            font-weight: 600;
-            color: #4a5568;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        /* Info/Success/Warning Boxes */
-        .stAlert {
-            border-radius: 12px;
-            border: none;
-            padding: 1rem 1.25rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-
-        /* Article Cards */
-        .article-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            border: 1px solid #e2e8f0;
-            transition: all 0.3s ease;
-        }
-
-        .article-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-        }
-
-        .article-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 0.75rem;
-            line-height: 1.4;
-        }
-
-        .article-meta {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            margin-bottom: 1rem;
-            font-size: 0.875rem;
-            color: #718096;
-        }
-
-        .article-meta-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-
-        .article-description {
-            color: #4a5568;
-            line-height: 1.6;
-            margin-bottom: 1rem;
-        }
-
-        .relevance-badge {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.875rem;
-        }
-
-        .relevance-high {
-            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-            color: white;
-        }
-
-        .relevance-medium {
-            background: linear-gradient(135deg, #ecc94b 0%, #d69e2e 100%);
-            color: white;
-        }
-
-        .relevance-low {
-            background: linear-gradient(135deg, #cbd5e0 0%, #a0aec0 100%);
-            color: white;
-        }
-
-        /* Link Button */
-        .link-button {
-            display: inline-block;
-            padding: 0.5rem 1.25rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white !important;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.875rem;
-            transition: all 0.3s ease;
-        }
-
-        .link-button:hover {
-            transform: translateX(4px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        /* Progress Bar */
-        .stProgress > div > div {
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            border-radius: 10px;
-        }
-
-        /* Multiselect */
-        .stMultiSelect [data-baseweb="tag"] {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 6px;
-        }
-
-        /* Slider */
-        .stSlider [data-baseweb="slider"] [role="slider"] {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        /* Download Button */
-        .stDownloadButton > button {
-            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .stDownloadButton > button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
-        }
-
-        /* Expander */
-        .streamlit-expanderHeader {
-            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-            border-radius: 10px;
-            font-weight: 600;
-            color: #2d3748;
-        }
-
-        /* Hero Section */
-        .hero-section {
-            text-align: center;
-            padding: 2rem 1rem;
-            background: white;
-            border-radius: 20px;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        }
-
-        .subtitle {
-            color: #718096;
-            font-size: 1.25rem;
-            font-weight: 500;
-            margin-top: 0.5rem;
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        }
-
-        .empty-state-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-        }
-
-        /* Hide Streamlit Branding */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 10px;
-            height: 10px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%);
-        }
+        html, body, [class*="css"] { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+        .main { padding: 2rem 1rem; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+        .block-container { max-width: 1400px; padding-top: 3rem; padding-bottom: 3rem; }
+        h1 { font-weight: 700; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 3rem !important; margin-bottom: 0.5rem !important; letter-spacing: -0.02em; }
+        h2 { font-weight: 600; color: #1a202c; font-size: 1.75rem !important; margin-top: 2rem !important; margin-bottom: 1rem !important; }
+        h3 { font-weight: 600; color: #2d3748; font-size: 1.25rem !important; }
+        [data-testid="stSidebar"] { background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%); border-right: 1px solid #e2e8f0; box-shadow: 2px 0 10px rgba(0,0,0,0.05); }
+        [data-testid="stSidebar"] h2 { color: #2d3748; font-size: 1.25rem !important; font-weight: 700; padding-left: 0.5rem; border-left: 4px solid #667eea; }
+        [data-testid="stSidebar"] h3 { color: #4a5568; font-size: 1rem !important; font-weight: 600; margin-top: 1.5rem !important; }
+        .stTextArea textarea { border-radius: 12px; border: 2px solid #e2e8f0; font-size: 0.9rem; font-family: 'SF Mono', Monaco, monospace; transition: all 0.3s ease; }
+        .stTextArea textarea:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .stButton > button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; padding: 0.75rem 2rem; font-weight: 600; font-size: 1.1rem; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); width: 100%; }
+        .stButton > button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6); }
+        [data-testid="stMetricValue"] { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        [data-testid="stMetricLabel"] { font-weight: 600; color: #4a5568; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .stAlert { border-radius: 12px; border: none; padding: 1rem 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .article-card { background: white; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; transition: all 0.3s ease; }
+        .article-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
+        .article-title { font-size: 1.25rem; font-weight: 700; color: #1a202c; margin-bottom: 0.75rem; }
+        .article-meta { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: 0.875rem; color: #718096; }
+        .article-meta-item { display: inline-flex; align-items: center; gap: 0.25rem; }
+        .article-description { color: #4a5568; line-height: 1.6; margin-bottom: 1rem; }
+        .relevance-badge { display: inline-block; padding: 0.5rem 1rem; border-radius: 20px; font-weight: 600; font-size: 0.875rem; }
+        .relevance-high { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; }
+        .relevance-medium { background: linear-gradient(135deg, #ecc94b 0%, #d69e2e 100%); color: white; }
+        .relevance-low { background: linear-gradient(135deg, #cbd5e0 0%, #a0aec0 100%); color: white; }
+        .link-button { display: inline-block; padding: 0.5rem 1.25rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 0.875rem; transition: all 0.3s ease; }
+        .link-button:hover { transform: translateX(4px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+        .stProgress > div > div { background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); border-radius: 10px; }
+        .stMultiSelect [data-baseweb="tag"] { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 6px; }
+        .stSlider [data-baseweb="slider"] [role="slider"] { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .stDownloadButton > button { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; border-radius: 10px; padding: 0.75rem 1.5rem; font-weight: 600; transition: all 0.3s ease; }
+        .stDownloadButton > button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4); }
+        .streamlit-expanderHeader { background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); border-radius: 10px; font-weight: 600; color: #2d3748; }
+        .hero-section { text-align: center; padding: 2rem 1rem; background: white; border-radius: 20px; margin-bottom: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+        .subtitle { color: #718096; font-size: 1.25rem; font-weight: 500; margin-top: 0.5rem; }
+        .empty-state { text-align: center; padding: 4rem 2rem; background: white; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+        .empty-state-icon { font-size: 4rem; margin-bottom: 1rem; }
+        #MainMenu {visibility: hidden;} footer {visibility: hidden;}
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%); }
         </style>
     """, unsafe_allow_html=True)
 
 # ---------------------- UI Helpers ----------------------
+@dataclass
+class _Void:  # to satisfy type hints when needed
+    pass
+
 def matches_to_dataframe(matches: List[Match]) -> pd.DataFrame:
     return pd.DataFrame([m.__dict__ for m in matches])
 
@@ -746,16 +482,15 @@ def parse_list_textarea(text: str) -> List[str]:
         line = line.strip()
         if not line:
             continue
-        # Split on commas if user pasted comma-separated items
         parts = [p.strip() for p in line.split(",") if p.strip()]
         items.extend(parts if parts else [line])
-    # Deduplicate while preserving order
     seen = set()
     out = []
     for x in items:
-        if x.lower() not in seen:
+        k = x.lower()
+        if k not in seen:
             out.append(x)
-            seen.add(x.lower())
+            seen.add(k)
     return out
 
 # ---------------------- Main App ----------------------
@@ -766,7 +501,7 @@ def main():
     st.markdown("""
         <div class="hero-section">
             <h1>Client Mentions Monitor</h1>
-            <div class="subtitle">Beautiful, modern interface to scan music news feeds for your clients</div>
+            <div class="subtitle">Scanning music news feeds for <strong>all preset clients</strong></div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -774,25 +509,11 @@ def main():
     with st.sidebar:
         st.header("Configuration")
 
-        # Clients
+        # Clients (fixed to all presets)
         st.subheader("Clients")
-        default_selection = st.multiselect(
-            "Pick from preset clients (optional)",
-            options=DEFAULT_CLIENTS,
-            default=[],
-            help="Start typing to search. You can also paste custom names below."
-        )
-
-        custom_clients_text = st.text_area(
-            "Custom clients (one per line or comma-separated)",
-            "",
-            height=150,
-            placeholder="e.g.\nArtist One\nArtist Two, Label Three"
-        )
-        clients = list(dict.fromkeys(default_selection + parse_list_textarea(custom_clients_text)))
-        if not clients:
-            st.info("No clients selected yet — we'll use a small sample so you can try it.")
-            clients = ["Matt Corby", "Peking Duk", "Jordan Rakei"]
+        st.success(f"Using all preset clients: {len(DEFAULT_CLIENTS)} total.")
+        with st.expander("Preview client list", expanded=False):
+            st.caption(", ".join(DEFAULT_CLIENTS))
 
         # Feeds
         st.subheader("Feeds")
@@ -805,7 +526,7 @@ def main():
         )
         extra_feeds = parse_list_textarea(extra_feeds_text)
         feeds = (CURATED_DEFAULT_FEEDS if use_curated else []) + extra_feeds
-        feeds = list(dict.fromkeys(feeds))  # dedupe
+        feeds = list(dict.fromkeys(feeds))  # dedupe, preserve order
 
         # Scan options
         st.subheader("Scan Options")
@@ -823,6 +544,8 @@ def main():
     st.write("")
 
     if start_scan:
+        clients = DEFAULT_CLIENTS  # always use the full preset list
+
         # Progress UI
         progress = st.progress(0.0, text="Starting scan…")
         progress_text = st.empty()
@@ -849,7 +572,7 @@ def main():
         col1.metric("Feeds scanned", f"{len(feeds)}")
         col2.metric("Matches found", f"{len(matches)}")
         unique_clients = len(set(m.client for m in matches))
-        col3.metric("Clients mentioned", f"{unique_clients}")
+        col3.metric("Clients mentioned", f"{unique_clients} / {len(DEFAULT_CLIENTS)}")
         col4.metric("Scan time", f"{scan_seconds:.1f}s")
 
         if matches:
@@ -859,23 +582,18 @@ def main():
             csv = df.to_csv(index=False).encode("utf-8")
             st.download_button("⬇️ Download CSV", csv, file_name=f"client_mentions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", mime="text/csv")
 
-            # Group by client (optional)
-            with st.expander("Group by client", expanded=False):
+            # Optional filter by client (useful with many hits)
+            with st.expander("Filter by client (optional)", expanded=False):
                 selected_clients = st.multiselect(
-                    "Filter by client",
+                    "Show only these clients",
                     options=sorted(set(m.client for m in matches)),
                     default=[]
                 )
-                if selected_clients:
-                    matches_to_show = [m for m in matches if m.client in selected_clients]
-                else:
-                    matches_to_show = matches
+                matches_to_show = [m for m in matches if (not selected_clients or m.client in selected_clients)]
             # Render cards
-            count = 0
-            for m in matches_to_show:
+            for i, m in enumerate(matches_to_show, start=1):
                 render_match_card(m)
-                count += 1
-                if count % 10 == 0:
+                if i % 10 == 0:
                     st.divider()
             if not matches_to_show:
                 st.info("No matches after applying filters.")
@@ -888,15 +606,14 @@ def main():
                 </div>
             """, unsafe_allow_html=True)
     else:
-        # Idle / instructions
         st.subheader("How it works")
         st.markdown("""
-        1. Choose **clients** (from presets and/or add custom names).  
-        2. Pick the **feeds** to scan (use the curated list and/or add your own).  
+        1. This app always scans **all preset clients** (no need to pick manually).  
+        2. Choose your **feeds** (use curated defaults and/or add your own).  
         3. Click **Scan Feeds** to fetch and analyze recent items.  
-        4. Review the **cards**, tweak the **relevance filter**, and **export CSV**.
+        4. Review the **cards**, adjust the **relevance filter**, and **export CSV**.
         """)
-        st.info("Tip: You can paste *any* valid RSS/Atom feed URL in the sidebar to extend coverage.")
+        st.info("Tip: Add more RSS/Atom feeds in the sidebar to widen coverage.")
 
 if __name__ == "__main__":
     main()
