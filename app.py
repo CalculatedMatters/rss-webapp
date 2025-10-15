@@ -22,7 +22,8 @@ from urllib.parse import urlparse, urlunparse
 import pandas as pd
 import feedparser
 import requests
-from requests.adapters import HTTPAdapter, Retry
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry  # correct import for Retry
 
 # ---------------------- Configuration ----------------------
 logging.basicConfig(level=logging.INFO)
@@ -122,7 +123,14 @@ DEFAULT_CLIENTS = [
 # ---------------------- HTTP Session ----------------------
 def build_http_session() -> requests.Session:
     s = requests.Session()
-    retries = Retry(total=3, backoff_factor=0.5, status_forcelist=(429, 500, 502, 503, 504))
+    retries = Retry(
+        total=3,
+        read=3,
+        connect=3,
+        backoff_factor=0.5,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset(["GET"])
+    )
     adapter = HTTPAdapter(max_retries=retries, pool_connections=15, pool_maxsize=25)
     s.mount("http://", adapter)
     s.mount("https://", adapter)
@@ -235,19 +243,19 @@ def _calculate_relevance_score(text: str, client: str, title: str) -> float:
     norm_text = _normalise_text(text)
     norm_client = _normalise_text(client)
     norm_title = _normalise_text(title)
-    
+
     if norm_client in norm_title:
         score += 2.0
-    
+
     mentions = norm_text.count(norm_client)
     if mentions > 1:
         score += 0.5 * (mentions - 1)
-    
+
     context_keywords = ['album', 'single', 'tour', 'concert', 'release', 'new', 'announces', 'performs']
     for keyword in context_keywords:
         if keyword in norm_text:
             score += 0.3
-    
+
     return min(score, 5.0)
 
 # ---------------------- RSS Monitor Class ----------------------
@@ -276,10 +284,10 @@ class RSSClientMonitor:
             head = raw[:200].lower()
             if b"<rss" not in head and b"<feed" not in head and b"<?xml" not in head:
                 return []
-            
+
             text = decode_bytes_best_effort(raw, enc)
             text = text.lstrip("\ufeff \t\r\n")
-            
+
             feed = feedparser.parse(text)
             return list(feed.entries or [])
         except Exception as e:
@@ -330,372 +338,8 @@ class RSSClientMonitor:
     def scan_feeds_concurrent(self, days: int = 7, progress_callback=None) -> List[Match]:
         all_matches: List[Match] = []
         seen: set = set()
-        
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             future_to_url = {
-                executor.submit(self.parse_feed_safe, url): url 
-                for url in self.rss_feeds
-            }
-            
-            completed = 0
-            total_feeds = len(future_to_url)
-            
-            for future in concurrent.futures.as_completed(future_to_url):
-                completed += 1
-                if progress_callback:
-                    progress_callback(completed, total_feeds)
-                
-                feed_url = future_to_url[future]
-                entries = future.result()
-                recent_entries = self.filter_recent_entries(entries, days)
-                
-                for entry in recent_entries:
-                    key = self._dedupe_key(entry)
-                    if key in seen:
-                        continue
-                    seen.add(key)
-                    
-                    text = self._entry_text(entry)
-                    if not text.strip():
-                        continue
-                    
-                    matched_clients = self._match_clients_in_text(text)
-                    if not matched_clients:
-                        continue
-                    
-                    title = entry.get("title") or "No Title"
-                    raw_desc = entry.get("description") or entry.get("summary") or ""
-                    description = _clean_html(raw_desc)
-                    link = entry.get("link") or "No Link"
-                    published = self._format_date(entry)
-                    domain = self._get_domain(link)
-                    
-                    for client in matched_clients:
-                        relevance = _calculate_relevance_score(text, client, title)
-                        
-                        all_matches.append(Match(
-                            client=client,
-                            title=title,
-                            description=description[:300] + ("..." if len(description) > 300 else ""),
-                            link=link,
-                            published=published,
-                            source=feed_url,
-                            domain=domain,
-                            found_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            relevance_score=relevance
-                        ))
-        
-        all_matches.sort(key=lambda x: x.relevance_score, reverse=True)
-        return all_matches
-
-# ---------------------- Premium UI Styling ----------------------
-def apply_premium_styling():
-    """Apply modern, professional CSS styling"""
-    st.markdown("""
-        <style>
-        /* Import Google Fonts */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
-        /* Global Styles */
-        html, body, [class*="css"] {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-        
-        /* Main Container */
-        .main {
-            padding: 2rem 1rem;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        }
-        
-        .block-container {
-            max-width: 1400px;
-            padding-top: 3rem;
-            padding-bottom: 3rem;
-        }
-        
-        /* Header Styling */
-        h1 {
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-size: 3rem !important;
-            margin-bottom: 0.5rem !important;
-            letter-spacing: -0.02em;
-        }
-        
-        h2 {
-            font-weight: 600;
-            color: #1a202c;
-            font-size: 1.75rem !important;
-            margin-top: 2rem !important;
-            margin-bottom: 1rem !important;
-        }
-        
-        h3 {
-            font-weight: 600;
-            color: #2d3748;
-            font-size: 1.25rem !important;
-        }
-        
-        /* Sidebar Styling */
-        [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%);
-            border-right: 1px solid #e2e8f0;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
-        }
-        
-        [data-testid="stSidebar"] h2 {
-            color: #2d3748;
-            font-size: 1.25rem !important;
-            font-weight: 700;
-            padding-left: 0.5rem;
-            border-left: 4px solid #667eea;
-        }
-        
-        [data-testid="stSidebar"] h3 {
-            color: #4a5568;
-            font-size: 1rem !important;
-            font-weight: 600;
-            margin-top: 1.5rem !important;
-        }
-        
-        /* Text Area Styling */
-        .stTextArea textarea {
-            border-radius: 12px;
-            border: 2px solid #e2e8f0;
-            font-size: 0.9rem;
-            font-family: 'SF Mono', Monaco, monospace;
-            transition: all 0.3s ease;
-        }
-        
-        .stTextArea textarea:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        /* Button Styling */
-        .stButton > button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 0.75rem 2rem;
-            font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            width: 100%;
-        }
-        
-        .stButton > button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-        }
-        
-        /* Metric Cards */
-        [data-testid="stMetricValue"] {
-            font-size: 2rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        [data-testid="stMetricLabel"] {
-            font-weight: 600;
-            color: #4a5568;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        
-        /* Info/Success/Warning Boxes */
-        .stAlert {
-            border-radius: 12px;
-            border: none;
-            padding: 1rem 1.25rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        /* Article Cards */
-        .article-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            border: 1px solid #e2e8f0;
-            transition: all 0.3s ease;
-        }
-        
-        .article-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-        }
-        
-        .article-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 0.75rem;
-            line-height: 1.4;
-        }
-        
-        .article-meta {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            margin-bottom: 1rem;
-            font-size: 0.875rem;
-            color: #718096;
-        }
-        
-        .article-meta-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-        
-        .article-description {
-            color: #4a5568;
-            line-height: 1.6;
-            margin-bottom: 1rem;
-        }
-        
-        .relevance-badge {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.875rem;
-        }
-        
-        .relevance-high {
-            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-            color: white;
-        }
-        
-        .relevance-medium {
-            background: linear-gradient(135deg, #ecc94b 0%, #d69e2e 100%);
-            color: white;
-        }
-        
-        .relevance-low {
-            background: linear-gradient(135deg, #cbd5e0 0%, #a0aec0 100%);
-            color: white;
-        }
-        
-        /* Link Button */
-        .link-button {
-            display: inline-block;
-            padding: 0.5rem 1.25rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white !important;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.875rem;
-            transition: all 0.3s ease;
-        }
-        
-        .link-button:hover {
-            transform: translateX(4px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        
-        /* Progress Bar */
-        .stProgress > div > div {
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            border-radius: 10px;
-        }
-        
-        /* Multiselect */
-        .stMultiSelect [data-baseweb="tag"] {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 6px;
-        }
-        
-        /* Slider */
-        .stSlider [data-baseweb="slider"] [role="slider"] {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        /* Download Button */
-        .stDownloadButton > button {
-            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .stDownloadButton > button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
-        }
-        
-        /* Expander */
-        .streamlit-expanderHeader {
-            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-            border-radius: 10px;
-            font-weight: 600;
-            color: #2d3748;
-        }
-        
-        /* Hero Section */
-        .hero-section {
-            text-align: center;
-            padding: 2rem 1rem;
-            background: white;
-            border-radius: 20px;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        }
-        
-        .subtitle {
-            color: #718096;
-            font-size: 1.25rem;
-            font-weight: 500;
-            margin-top: 0.5rem;
-        }
-        
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        }
-        
-        .empty-state-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-        }
-        
-        /* Hide Streamlit Branding */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 10px;
-            height: 10px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%);
+                executor.submit(self.parse_feed_safe, url): url
+                for url i
