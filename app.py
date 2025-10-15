@@ -49,9 +49,74 @@ CURATED_DEFAULT_FEEDS = [
 ]
 
 DEFAULT_CLIENTS = [
-    "Ben Lee", "Matt Corby", "Peking Duk", "Glass Beams",
-    "Josh Pyke", "Karnivool", "Unknown Mortal Orchestra",
-    "Tame Impala", "King Gizzard", "Flume"
+    "Aaron Bull", "A.S. Bull & M.T. Wilson", "Aashna Gulabani", "Adam Hyde",
+    "Adam Hyde Productions", "Alexander Burnett", "Long Life Music", "Alex Lloyd",
+    "Table Music Trust", "Allex Conley", "Andrew Bryan", "Stop Start",
+    "Andrew Cook", "Andrew Kent", "A. Charles Kent and Associates", "Andy Golledge",
+    "Angela Henley", "Angus Dowling", "Eureka Music", "Ashleigh Maher",
+    "AW Noise Limited", "Benedict East", "Benemusicc Limited", "Benjamin Michael Lee",
+    "Ben Lee", "Benjamin O'Leary", "Drax Project", "Boby Andonov",
+    "Kid Brother", "Bonnie Fraser", "Brae Luafalealo", "Brita McVeigh",
+    "Caitlin McGregor", "Cameron Robertson", "Good Chicken", "Caroline Knight",
+    "Cathie Corby", "Matt Corby", "Matthew Corby", "Charlene Collins",
+    "Chloe Melick", "Christopher Gilks", "Claire Edwardes", "Clara Baker",
+    "Cooking Vinyl Publishing", "Crooked Industries", "Daine Wright", "Daniel Gordon",
+    "Dann Hume", "Flightless Bird", "David Le'aupepe", "Macsta Music Management",
+    "Volkanik", "David Potter", "Deanna Adams", "Demetrius Savelio",
+    "Savage Entertainment", "Dominic Beckett", "Dominic Kim", "Triple One Music",
+    "Dominik Borzestowski", "DV Touring", "Eamon Sandwith", "Chatcorp",
+    "Eli Matthewson", "Elizabeth Ryan", "Ella Easton", "Emily Copeland",
+    "Ennaria Rourke", "Eve Woodhouse", "EYO Limited", "Fan Plus International",
+    "Gareth Stuckey", "Gigpiglet Productions", "Georgina Luxton Alba", "Gerbz",
+    "Gillian Stannard", "Glenn Shorrock", "Swan Song", "Goat Entertainment",
+    "Gregg Donovan", "Gwilym Griffiths", "Good Authority Agency", "Haiku Entertainment",
+    "Hannah Cameron", "Fire In Your Eyes", "Harmonie Henderson-Brown", "Third Eye Therapies",
+    "Harry Day", "MK Recordings", "Harry White", "Heath Bradby",
+    "Fidelity Corporation", "Hebbes Music Group", "Hinenui-Terangi Tairua", "Hugh Baillie",
+    "Huon Lamb-Kelly", "I Am Giant", "Ian Jones", "Ione Skye Lee",
+    "Weirder Together", "Irene Rose-Shorrock", "Emery Way", "Jack Crowther",
+    "Babe Rainbow", "Jack McLaine", "Jack Williment", "James Foster",
+    "James Ivey", "Jay Ryves", "Jayden Seeley", "Jeanavive McGregor",
+    "Jessica Cerro", "Jessica Day", "John Corby", "John Mravunac",
+    "Joji Malani", "Broth Records", "Jonathan Toogood", "Hideo Fuji Enterprises",
+    "Jordan O'Connell", "Jordan Rakei", "Domestic Music Concepts", "International Music Concepts",
+    "Joseph Wenceslao", "Josh Pyke", "Joshua Pyke", "Moonduck Holdings",
+    "Timshel Trust", "Joshua Szeps", "On The Stoop", "Julie Jamieson",
+    "Jung Kim", "Karina Wykes", "Karnivool", "Kayla Bonnici",
+    "Kaylee Bell", "Kent O'Connell", "Jacinta O'Connell", "Dynamic Matters",
+    "Kora Limited", "Kristy Pinder", "Kristyna Higgins", "Slick Productions",
+    "Ladyhawke", "Larissa Lambert", "Laurence Pike", "Leisure Partnership",
+    "Lucas O'Connell", "Luca Durante", "Luke Mulligan", "Circa 41",
+    "Marie Devita", "Marie Pangaud", "Spicy Key Chain", "Glass Beams",
+    "Marlin's Dreaming", "Martin Guilfoyle", "Martin Novosel", "Serious Business Corporation",
+    "Killphonic Rights", "Massive Entertainment", "Matthew Boggis", "Number One Enterprises",
+    "Matthew Carins", "Matt Corby Enterprises", "Rainbow Valley Records", "Mathew Morris",
+    "Across The Line Consulting", "Matthew Weston", "The Syndicate Films", "Matthew Wilson",
+    "Maxwell Dunn", "Mosy Recordings", "Melisa Bester", "Melita Hodge",
+    "Six Boroughs Management", "Six Boroughs Media", "Michael Easton", "Grove Law",
+    "Michael Rich", "Stand Atlantic", "Stand Atlantic Fellowship", "Boy Soda",
+    "Molly Millington", "Sumner", "Millionaire Millington", "Molly Payton",
+    "Muroki Githinji", "Nathan Hudson", "RLT Music", "Future Classic",
+    "Nicholas Littlemore", "Nicky Fats", "Nicole Davis", "Nicole Michel-Millar",
+    "Nicole Millar", "Nina Gilks", "Niriko McLure", "Belmont Street Entertainment",
+    "Oliver Rush", "Opossom", "Parker & Mr French", "Paul Harris",
+    "Peter Mayes", "38 Ten Group", "Philip Jamieson", "Burning Daggers",
+    "Philip Knight", "Peking Duk", "Reuben Styles", "Yoga The Band",
+    "Robin Covell", "Worthy Of The Name", "Rory Adams", "Ryan D'Sylva",
+    "Brain Wax", "Ryan Henderson", "Hollow Coves", "Sally McCausland",
+    "Samantha White", "Samuel Thomson", "Sarah Croxall", "Sarah Stewart",
+    "Sarah Tran", "SC Funk Group", "Scout Eastment", "Sean Szeps",
+    "Shane Carn", "Elevator Media", "Sharlee Curnow", "Peach PRC",
+    "Simon Day", "Rinang", "Simon Price", "SLR Limited",
+    "Sophie Andrews", "Buneaux", "Sophie Chugg", "Stephen De Wilde",
+    "Teeks", "Tex Perkins", "The Black Seeds", "Thelma Plumbe",
+    "Plumdog Billionaire", "Thirsty Merc", "Thomas Easton", "Tienne Simons",
+    "Timothy Fitzmaurice", "Tom Hobden", "Tom Larkin", "Lazy Empire",
+    "Jetz Digital", "Unknown Mortal Orchestra", "Vivien Fantin", "Wayne Covell",
+    "West Thebarton", "William Gunns", "Billy Gunns", "Nathan McLay",
+    "Peter Quinlan", "Tony Adams", "William Hyde", "Williamo The Collective",
+    "Wonder Music Company", "Xavier James", "New Levels", "Yasmin Mund",
+    "Yumi Zouma", "Zoe Seiler"
 ]
 
 # ---------------------- HTTP Session ----------------------
@@ -406,6 +471,10 @@ def main():
             feeds.extend(custom_feed_list)
         
         st.info(f"📊 Monitoring **{len(clients)}** clients across **{len(feeds)}** feeds")
+        
+        # Add a helpful tip
+        if len(clients) > 50:
+            st.success(f"✨ Large client list detected! The scan will search for all {len(clients)} clients efficiently.")
     
     # Main content area
     if not clients:
