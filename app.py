@@ -388,314 +388,131 @@ class RSSClientMonitor:
         all_matches.sort(key=lambda x: x.relevance_score, reverse=True)
         return all_matches
 
-# ---------------------- Premium UI Styling ----------------------
-def apply_premium_styling():
-    """Apply modern, professional CSS styling"""
+# ---------------------- Streamlit UI ----------------------
+def main():
+    st.set_page_config(
+        page_title="Client Mentions Monitor",
+        page_icon="🎵",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+    
+    # Custom CSS
     st.markdown("""
-        <style>
-        /* Import Google Fonts */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+    .main { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+    h1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .stButton > button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; padding: 0.75rem 2rem; font-weight: 600; border: none; }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Initialize session state
+    if 'matches' not in st.session_state:
+        st.session_state.matches = None
+    if 'scan_time' not in st.session_state:
+        st.session_state.scan_time = None
+    if 'num_feeds' not in st.session_state:
+        st.session_state.num_feeds = 0
+    
+    # Header
+    st.title("🎵 Client Mentions Monitor")
+    st.markdown("Track mentions of your clients across music news feeds")
+    
+    # Sidebar
+    with st.sidebar:
+        st.header("⚙️ Configuration")
         
-        /* Global Styles */
-        html, body, [class*="css"] {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
+        st.subheader("Clients to Monitor")
+        st.success(f"Monitoring {len(DEFAULT_CLIENTS)} preset clients")
+        with st.expander("View client list"):
+            st.write(", ".join(DEFAULT_CLIENTS[:10]) + "...")
         
-        /* Main Container */
-        .main {
-            padding: 2rem 1rem;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        }
+        st.subheader("Settings")
+        days = st.slider("Days to look back", 1, 30, 7)
+        max_workers = st.slider("Concurrent workers", 2, 20, 10, 
+            help="Number of feeds to process simultaneously")
+        min_relevance = st.slider("Minimum relevance", 1.0, 5.0, 1.0, 0.5)
         
-        .block-container {
-            max-width: 1400px;
-            padding-top: 3rem;
-            padding-bottom: 3rem;
-        }
+        run_button = st.button("🚀 Start Scan", use_container_width=True)
         
-        /* Header Styling */
-        h1 {
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-size: 3rem !important;
-            margin-bottom: 0.5rem !important;
-            letter-spacing: -0.02em;
-        }
+        if st.session_state.matches is not None:
+            if st.button("🗑️ Clear Results", use_container_width=True):
+                st.session_state.matches = None
+                st.session_state.scan_time = None
+                st.rerun()
+    
+    # Main content
+    if run_button:
+        progress_bar = st.progress(0)
+        status_text = st.empty()
         
-        h2 {
-            font-weight: 600;
-            color: #1a202c;
-            font-size: 1.75rem !important;
-            margin-top: 2rem !important;
-            margin-bottom: 1rem !important;
-        }
+        def update_progress(completed, total):
+            progress_bar.progress(completed / total)
+            status_text.text(f"Processing {completed}/{total} feeds...")
         
-        h3 {
-            font-weight: 600;
-            color: #2d3748;
-            font-size: 1.25rem !important;
-        }
+        monitor = RSSClientMonitor(DEFAULT_CLIENTS, CURATED_DEFAULT_FEEDS, max_workers)
         
-        /* Sidebar Styling */
-        [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%);
-            border-right: 1px solid #e2e8f0;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
-        }
+        start_time = time.time()
+        matches = monitor.scan_feeds_concurrent(days, update_progress)
+        elapsed = time.time() - start_time
         
-        [data-testid="stSidebar"] h2 {
-            color: #2d3748;
-            font-size: 1.25rem !important;
-            font-weight: 700;
-            padding-left: 0.5rem;
-            border-left: 4px solid #667eea;
-        }
+        st.session_state.matches = matches
+        st.session_state.scan_time = elapsed
+        st.session_state.num_feeds = len(CURATED_DEFAULT_FEEDS)
         
-        [data-testid="stSidebar"] h3 {
-            color: #4a5568;
-            font-size: 1rem !important;
-            font-weight: 600;
-            margin-top: 1.5rem !important;
-        }
+        progress_bar.empty()
+        status_text.empty()
+    
+    # Display results
+    if st.session_state.matches is not None:
+        matches = [m for m in st.session_state.matches if m.relevance_score >= min_relevance]
         
-        /* Text Area Styling */
-        .stTextArea textarea {
-            border-radius: 12px;
-            border: 2px solid #e2e8f0;
-            font-size: 0.9rem;
-            font-family: 'SF Mono', Monaco, monospace;
-            transition: all 0.3s ease;
-        }
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Feeds Scanned", st.session_state.num_feeds)
+        col2.metric("Matches Found", len(matches))
+        col3.metric("Clients Mentioned", len(set(m.client for m in matches)))
+        col4.metric("Scan Time", f"{st.session_state.scan_time:.1f}s")
         
-        .stTextArea textarea:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        /* Button Styling */
-        .stButton > button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 0.75rem 2rem;
-            font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            width: 100%;
-        }
-        
-        .stButton > button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-        }
-        
-        /* Metric Cards */
-        [data-testid="stMetricValue"] {
-            font-size: 2rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        [data-testid="stMetricLabel"] {
-            font-weight: 600;
-            color: #4a5568;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        
-        /* Info/Success/Warning Boxes */
-        .stAlert {
-            border-radius: 12px;
-            border: none;
-            padding: 1rem 1.25rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        /* Article Cards */
-        .article-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            border: 1px solid #e2e8f0;
-            transition: all 0.3s ease;
-        }
-        
-        .article-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-        }
-        
-        .article-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 0.75rem;
-            line-height: 1.4;
-        }
-        
-        .article-meta {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            margin-bottom: 1rem;
-            font-size: 0.875rem;
-            color: #718096;
-        }
-        
-        .article-meta-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-        
-        .article-description {
-            color: #4a5568;
-            line-height: 1.6;
-            margin-bottom: 1rem;
-        }
-        
-        .relevance-badge {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.875rem;
-        }
-        
-        .relevance-high {
-            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-            color: white;
-        }
-        
-        .relevance-medium {
-            background: linear-gradient(135deg, #ecc94b 0%, #d69e2e 100%);
-            color: white;
-        }
-        
-        .relevance-low {
-            background: linear-gradient(135deg, #cbd5e0 0%, #a0aec0 100%);
-            color: white;
-        }
-        
-        /* Link Button */
-        .link-button {
-            display: inline-block;
-            padding: 0.5rem 1.25rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white !important;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.875rem;
-            transition: all 0.3s ease;
-        }
-        
-        .link-button:hover {
-            transform: translateX(4px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        
-        /* Progress Bar */
-        .stProgress > div > div {
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            border-radius: 10px;
-        }
-        
-        /* Multiselect */
-        .stMultiSelect [data-baseweb="tag"] {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 6px;
-        }
-        
-        /* Slider */
-        .stSlider [data-baseweb="slider"] [role="slider"] {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        /* Download Button */
-        .stDownloadButton > button {
-            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .stDownloadButton > button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
-        }
-        
-        /* Expander */
-        .streamlit-expanderHeader {
-            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-            border-radius: 10px;
-            font-weight: 600;
-            color: #2d3748;
-        }
-        
-        /* Hero Section */
-        .hero-section {
-            text-align: center;
-            padding: 2rem 1rem;
-            background: white;
-            border-radius: 20px;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        }
-        
-        .subtitle {
-            color: #718096;
-            font-size: 1.25rem;
-            font-weight: 500;
-            margin-top: 0.5rem;
-        }
-        
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        }
-        
-        .empty-state-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-        }
-        
-        /* Hide Streamlit Branding */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 10px;
-            height: 10px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%);
+        if matches:
+            st.markdown("---")
+            
+            # Client filter
+            with st.expander("🔍 Filter by Client"):
+                selected = st.multiselect(
+                    "Select clients to show",
+                    options=sorted(set(m.client for m in matches)),
+                    key="client_filter"
+                )
+            
+            display_matches = matches if not selected else [m for m in matches if m.client in selected]
+            
+            if selected:
+                st.info(f"Showing {len(display_matches)} of {len(matches)} matches")
+            
+            # Export
+            df = pd.DataFrame([vars(m) for m in display_matches])
+            csv = df.to_csv(index=False)
+            st.download_button("📥 Download CSV", csv, f"mentions_{datetime.now().strftime('%Y%m%d')}.csv")
+            
+            st.markdown("---")
+            
+            # Display cards
+            for match in display_matches:
+                with st.container():
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.markdown(f"### [{match.title}]({match.link})")
+                        st.markdown(f"**{match.client}** • {match.domain} • {match.published}")
+                        st.write(match.description)
+                    with col2:
+                        st.metric("Relevance", f"{match.relevance_score:.1f}")
+                    st.markdown("---")
+        else:
+            st.info("No matches found. Try adjusting the filters.")
+    else:
+        st.info("👈 Configure settings in the sidebar and click 'Start Scan'")
+
+if __name__ == "__main__":
+    main()
