@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Client Mentions Monitor - Premium UI/UX Edition
+Beautiful, modern interface for monitoring client mentions across music news feeds
 """
 
 import streamlit as st
@@ -21,8 +22,7 @@ from urllib.parse import urlparse, urlunparse
 import pandas as pd
 import feedparser
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry  # correct import for Retry
+from requests.adapters import HTTPAdapter, Retry
 
 # ---------------------- Configuration ----------------------
 logging.basicConfig(level=logging.INFO)
@@ -43,13 +43,9 @@ CURATED_DEFAULT_FEEDS = [
     "https://aaabackstage.com/feed/",
     "https://beat.com.au/music/feed/",
     "https://www.theguardian.com/music/australian-music/rss",
-    "https://thewest.com.au/entertainment/music/feed",
     "https://australianmusician.com.au/feed/",
     "https://www.noise11.com/feed/",
-    "https://www.cutcommonmag.com/feed/",
     "https://au.rollingstone.com/feed/",
-    "https://au.rollingstone.com/music/feed/",
-    "https://thehordern.com.au/feed/",
 ]
 
 DEFAULT_CLIENTS = [
@@ -126,14 +122,7 @@ DEFAULT_CLIENTS = [
 # ---------------------- HTTP Session ----------------------
 def build_http_session() -> requests.Session:
     s = requests.Session()
-    retries = Retry(
-        total=3,
-        read=3,
-        connect=3,
-        backoff_factor=0.5,
-        status_forcelist=(429, 500, 502, 503, 504),
-        allowed_methods=frozenset(["GET"])
-    )
+    retries = Retry(total=3, backoff_factor=0.5, status_forcelist=(429, 500, 502, 503, 504))
     adapter = HTTPAdapter(max_retries=retries, pool_connections=15, pool_maxsize=25)
     s.mount("http://", adapter)
     s.mount("https://", adapter)
@@ -158,7 +147,7 @@ def simple_retry(max_attempts=3, delay=1):
             for attempt in range(max_attempts):
                 try:
                     return func(*args, **kwargs)
-                except Exception:
+                except Exception as e:
                     if attempt == max_attempts - 1:
                         raise
                     time.sleep(delay)
@@ -246,19 +235,19 @@ def _calculate_relevance_score(text: str, client: str, title: str) -> float:
     norm_text = _normalise_text(text)
     norm_client = _normalise_text(client)
     norm_title = _normalise_text(title)
-
+    
     if norm_client in norm_title:
         score += 2.0
-
+    
     mentions = norm_text.count(norm_client)
     if mentions > 1:
         score += 0.5 * (mentions - 1)
-
+    
     context_keywords = ['album', 'single', 'tour', 'concert', 'release', 'new', 'announces', 'performs']
     for keyword in context_keywords:
         if keyword in norm_text:
             score += 0.3
-
+    
     return min(score, 5.0)
 
 # ---------------------- RSS Monitor Class ----------------------
@@ -287,10 +276,10 @@ class RSSClientMonitor:
             head = raw[:200].lower()
             if b"<rss" not in head and b"<feed" not in head and b"<?xml" not in head:
                 return []
-
+            
             text = decode_bytes_best_effort(raw, enc)
             text = text.lstrip("\ufeff \t\r\n")
-
+            
             feed = feedparser.parse(text)
             return list(feed.entries or [])
         except Exception as e:
@@ -341,283 +330,220 @@ class RSSClientMonitor:
     def scan_feeds_concurrent(self, days: int = 7, progress_callback=None) -> List[Match]:
         all_matches: List[Match] = []
         seen: set = set()
-
+        
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             future_to_url = {
-                executor.submit(self.parse_feed_safe, url): url
+                executor.submit(self.parse_feed_safe, url): url 
                 for url in self.rss_feeds
             }
-
+            
             completed = 0
             total_feeds = len(future_to_url)
-
+            
             for future in concurrent.futures.as_completed(future_to_url):
                 completed += 1
                 if progress_callback:
                     progress_callback(completed, total_feeds)
-
+                
+                feed_url = future_to_url[future]
                 entries = future.result()
                 recent_entries = self.filter_recent_entries(entries, days)
-
+                
                 for entry in recent_entries:
                     key = self._dedupe_key(entry)
                     if key in seen:
                         continue
                     seen.add(key)
-
+                    
                     text = self._entry_text(entry)
                     if not text.strip():
                         continue
-
+                    
                     matched_clients = self._match_clients_in_text(text)
                     if not matched_clients:
                         continue
-
+                    
                     title = entry.get("title") or "No Title"
                     raw_desc = entry.get("description") or entry.get("summary") or ""
                     description = _clean_html(raw_desc)
                     link = entry.get("link") or "No Link"
                     published = self._format_date(entry)
                     domain = self._get_domain(link)
-
+                    
                     for client in matched_clients:
                         relevance = _calculate_relevance_score(text, client, title)
-
+                        
                         all_matches.append(Match(
                             client=client,
                             title=title,
                             description=description[:300] + ("..." if len(description) > 300 else ""),
                             link=link,
                             published=published,
-                            source=f"{domain}",
+                            source=feed_url,
                             domain=domain,
                             found_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             relevance_score=relevance
                         ))
-
+        
         all_matches.sort(key=lambda x: x.relevance_score, reverse=True)
         return all_matches
 
-# ---------------------- Premium UI Styling ----------------------
-def apply_premium_styling():
-    """Apply modern, professional CSS styling"""
-    st.markdown("""
-        <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        html, body, [class*="css"] { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-        .main { padding: 2rem 1rem; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
-        .block-container { max-width: 1400px; padding-top: 3rem; padding-bottom: 3rem; }
-        h1 { font-weight: 700; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 3rem !important; margin-bottom: 0.5rem !important; letter-spacing: -0.02em; }
-        h2 { font-weight: 600; color: #1a202c; font-size: 1.75rem !important; margin-top: 2rem !important; margin-bottom: 1rem !important; }
-        h3 { font-weight: 600; color: #2d3748; font-size: 1.25rem !important; }
-        [data-testid="stSidebar"] { background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%); border-right: 1px solid #e2e8f0; box-shadow: 2px 0 10px rgba(0,0,0,0.05); }
-        [data-testid="stSidebar"] h2 { color: #2d3748; font-size: 1.25rem !important; font-weight: 700; padding-left: 0.5rem; border-left: 4px solid #667eea; }
-        [data-testid="stSidebar"] h3 { color: #4a5568; font-size: 1rem !important; font-weight: 600; margin-top: 1.5rem !important; }
-        .stTextArea textarea { border-radius: 12px; border: 2px solid #e2e8f0; font-size: 0.9rem; font-family: 'SF Mono', Monaco, monospace; transition: all 0.3s ease; }
-        .stTextArea textarea:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
-        .stButton > button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; padding: 0.75rem 2rem; font-weight: 600; font-size: 1.1rem; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); width: 100%; }
-        .stButton > button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6); }
-        [data-testid="stMetricValue"] { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        [data-testid="stMetricLabel"] { font-weight: 600; color: #4a5568; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        .stAlert { border-radius: 12px; border: none; padding: 1rem 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        .article-card { background: white; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; transition: all 0.3s ease; }
-        .article-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
-        .article-title { font-size: 1.25rem; font-weight: 700; color: #1a202c; margin-bottom: 0.75rem; }
-        .article-meta { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: 0.875rem; color: #718096; }
-        .article-meta-item { display: inline-flex; align-items: center; gap: 0.25rem; }
-        .article-description { color: #4a5568; line-height: 1.6; margin-bottom: 1rem; }
-        .relevance-badge { display: inline-block; padding: 0.5rem 1rem; border-radius: 20px; font-weight: 600; font-size: 0.875rem; }
-        .relevance-high { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; }
-        .relevance-medium { background: linear-gradient(135deg, #ecc94b 0%, #d69e2e 100%); color: white; }
-        .relevance-low { background: linear-gradient(135deg, #cbd5e0 0%, #a0aec0 100%); color: white; }
-        .link-button { display: inline-block; padding: 0.5rem 1.25rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 0.875rem; transition: all 0.3s ease; }
-        .link-button:hover { transform: translateX(4px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
-        .stProgress > div > div { background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); border-radius: 10px; }
-        .stMultiSelect [data-baseweb="tag"] { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 6px; }
-        .stSlider [data-baseweb="slider"] [role="slider"] { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .stDownloadButton > button { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; border-radius: 10px; padding: 0.75rem 1.5rem; font-weight: 600; transition: all 0.3s ease; }
-        .stDownloadButton > button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4); }
-        .streamlit-expanderHeader { background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); border-radius: 10px; font-weight: 600; color: #2d3748; }
-        .hero-section { text-align: center; padding: 2rem 1rem; background: white; border-radius: 20px; margin-bottom: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
-        .subtitle { color: #718096; font-size: 1.25rem; font-weight: 500; margin-top: 0.5rem; }
-        .empty-state { text-align: center; padding: 4rem 2rem; background: white; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
-        .empty-state-icon { font-size: 4rem; margin-bottom: 1rem; }
-        #MainMenu {visibility: hidden;} footer {visibility: hidden;}
-        ::-webkit-scrollbar { width: 10px; height: 10px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%); }
-        </style>
-    """, unsafe_allow_html=True)
-
-# ---------------------- UI Helpers ----------------------
-@dataclass
-class _Void:  # to satisfy type hints when needed
-    pass
-
-def matches_to_dataframe(matches: List[Match]) -> pd.DataFrame:
-    return pd.DataFrame([m.__dict__ for m in matches])
-
-def relevance_class(score: float) -> str:
-    if score >= 3.5:
-        return "relevance-high"
-    if score >= 2.0:
-        return "relevance-medium"
-    return "relevance-low"
-
-def render_match_card(m: Match):
-    st.markdown(f"""
-        <div class="article-card">
-            <div class="article-title">{html.escape(m.title)}</div>
-            <div class="article-meta">
-                <div class="article-meta-item">🎯 Client: <strong>{html.escape(m.client)}</strong></div>
-                <div class="article-meta-item">📰 Source: {html.escape(m.domain)}</div>
-                <div class="article-meta-item">📅 Published: {html.escape(m.published)}</div>
-                <div class="article-meta-item"><span class="relevance-badge {relevance_class(m.relevance_score)}">Relevance: {m.relevance_score:.1f}</span></div>
-            </div>
-            <div class="article-description">{html.escape(m.description)}</div>
-            <a class="link-button" href="{m.link}" target="_blank" rel="noopener">Read Article →</a>
-        </div>
-    """, unsafe_allow_html=True)
-
-def parse_list_textarea(text: str) -> List[str]:
-    items = []
-    for line in (text or "").splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        parts = [p.strip() for p in line.split(",") if p.strip()]
-        items.extend(parts if parts else [line])
-    seen = set()
-    out = []
-    for x in items:
-        k = x.lower()
-        if k not in seen:
-            out.append(x)
-            seen.add(k)
-    return out
-
-# ---------------------- Main App ----------------------
+# ---------------------- Streamlit UI ----------------------
 def main():
-    st.set_page_config(page_title="Client Mentions Monitor", page_icon="🔎", layout="wide")
-    apply_premium_styling()
-
+    st.set_page_config(
+        page_title="Client Mentions Monitor",
+        page_icon="🎵",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+    
+    # Custom CSS
     st.markdown("""
-        <div class="hero-section">
-            <h1>Client Mentions Monitor</h1>
-            <div class="subtitle">Scanning music news feeds for <strong>all preset clients</strong></div>
-        </div>
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+    .main { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+    h1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .stButton > button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; padding: 0.75rem 2rem; font-weight: 600; border: none; }
+    .match-card { background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid; }
+    .match-card-high { border-left-color: #48bb78; background: linear-gradient(to right, #f0fff4 0%, white 100%); }
+    .match-card-medium { border-left-color: #ecc94b; background: linear-gradient(to right, #fffbeb 0%, white 100%); }
+    .match-card-low { border-left-color: #cbd5e0; background: linear-gradient(to right, #f7fafc 0%, white 100%); }
+    .relevance-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 12px; font-weight: 600; font-size: 0.875rem; }
+    .relevance-high { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; }
+    .relevance-medium { background: linear-gradient(135deg, #ecc94b 0%, #d69e2e 100%); color: white; }
+    .relevance-low { background: linear-gradient(135deg, #cbd5e0 0%, #a0aec0 100%); color: white; }
+    .article-link { display: inline-block; margin-top: 1rem; padding: 0.5rem 1.25rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 0.875rem; transition: all 0.3s ease; }
+    .article-link:hover { transform: translateX(4px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+    </style>
     """, unsafe_allow_html=True)
-
-    # Sidebar controls
+    
+    # Initialize session state
+    if 'matches' not in st.session_state:
+        st.session_state.matches = None
+    if 'scan_time' not in st.session_state:
+        st.session_state.scan_time = None
+    if 'num_feeds' not in st.session_state:
+        st.session_state.num_feeds = 0
+    
+    # Header
+    st.title("🎵 Client Mentions Monitor")
+    st.markdown("Track mentions of your clients across music news feeds")
+    
+    # Sidebar
     with st.sidebar:
-        st.header("Configuration")
-
-        # Clients (fixed to all presets)
-        st.subheader("Clients")
-        st.success(f"Using all preset clients: {len(DEFAULT_CLIENTS)} total.")
-        with st.expander("Preview client list", expanded=False):
-            st.caption(", ".join(DEFAULT_CLIENTS))
-
-        # Feeds
-        st.subheader("Feeds")
-        use_curated = st.checkbox("Use curated default feeds", True)
-        extra_feeds_text = st.text_area(
-            "Additional feed URLs (one per line)",
-            "",
-            height=120,
-            placeholder="https://example.com/rss\nhttps://another.com/feed"
-        )
-        extra_feeds = parse_list_textarea(extra_feeds_text)
-        feeds = (CURATED_DEFAULT_FEEDS if use_curated else []) + extra_feeds
-        feeds = list(dict.fromkeys(feeds))  # dedupe, preserve order
-
-        # Scan options
-        st.subheader("Scan Options")
-        days = st.slider("Look back (days)", min_value=1, max_value=60, value=7)
-        max_workers = st.slider("Parallel requests", min_value=2, max_value=32, value=10)
-        min_relevance = st.slider("Minimum relevance to show", min_value=1.0, max_value=5.0, value=1.0, step=0.1)
-
-        start_scan = st.button("🔍 Scan Feeds")
-
-    # Content area
-    if not feeds:
-        st.warning("Please add at least one RSS feed in the sidebar.")
-        return
-
-    st.write("")
-
-    if start_scan:
-        clients = DEFAULT_CLIENTS  # always use the full preset list
-
-        # Progress UI
-        progress = st.progress(0.0, text="Starting scan…")
-        progress_text = st.empty()
-
-        def progress_cb(done, total):
-            pct = done / max(total, 1)
-            progress.progress(pct, text=f"Scanning feeds… {done}/{total}")
-            progress_text.caption(f"Processed {done} of {total} feeds")
-
-        monitor = RSSClientMonitor(clients=clients, feeds=feeds, max_workers=max_workers)
-
-        t0 = time.time()
-        matches = monitor.scan_feeds_concurrent(days=days, progress_callback=progress_cb)
-        scan_seconds = time.time() - t0
-
-        # Filter by relevance
-        matches = [m for m in matches if m.relevance_score >= min_relevance]
-
-        progress.empty()
-        progress_text.empty()
-
-        # Metrics
+        st.header("⚙️ Configuration")
+        
+        st.subheader("Clients to Monitor")
+        st.success(f"Monitoring {len(DEFAULT_CLIENTS)} preset clients")
+        with st.expander("View client list"):
+            st.write(", ".join(DEFAULT_CLIENTS[:10]) + "...")
+        
+        st.subheader("Settings")
+        days = st.slider("Days to look back", 1, 30, 7)
+        max_workers = st.slider("Concurrent workers", 2, 20, 10, 
+            help="Number of feeds to process simultaneously")
+        min_relevance = st.slider("Minimum relevance", 1.0, 5.0, 1.0, 0.5)
+        
+        run_button = st.button("🚀 Start Scan", use_container_width=True)
+        
+        if st.session_state.matches is not None:
+            if st.button("🗑️ Clear Results", use_container_width=True):
+                st.session_state.matches = None
+                st.session_state.scan_time = None
+                st.rerun()
+    
+    # Main content
+    if run_button:
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        def update_progress(completed, total):
+            progress_bar.progress(completed / total)
+            status_text.text(f"Processing {completed}/{total} feeds...")
+        
+        monitor = RSSClientMonitor(DEFAULT_CLIENTS, CURATED_DEFAULT_FEEDS, max_workers)
+        
+        start_time = time.time()
+        matches = monitor.scan_feeds_concurrent(days, update_progress)
+        elapsed = time.time() - start_time
+        
+        st.session_state.matches = matches
+        st.session_state.scan_time = elapsed
+        st.session_state.num_feeds = len(CURATED_DEFAULT_FEEDS)
+        
+        progress_bar.empty()
+        status_text.empty()
+    
+    # Display results
+    if st.session_state.matches is not None:
+        matches = [m for m in st.session_state.matches if m.relevance_score >= min_relevance]
+        
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Feeds scanned", f"{len(feeds)}")
-        col2.metric("Matches found", f"{len(matches)}")
-        unique_clients = len(set(m.client for m in matches))
-        col3.metric("Clients mentioned", f"{unique_clients} / {len(DEFAULT_CLIENTS)}")
-        col4.metric("Scan time", f"{scan_seconds:.1f}s")
-
+        col1.metric("Feeds Scanned", st.session_state.num_feeds)
+        col2.metric("Matches Found", len(matches))
+        col3.metric("Clients Mentioned", len(set(m.client for m in matches)))
+        col4.metric("Scan Time", f"{st.session_state.scan_time:.1f}s")
+        
         if matches:
-            st.subheader("Matches")
-            # Export
-            df = matches_to_dataframe(matches)
-            csv = df.to_csv(index=False).encode("utf-8")
-            st.download_button("⬇️ Download CSV", csv, file_name=f"client_mentions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", mime="text/csv")
-
-            # Optional filter by client (useful with many hits)
-            with st.expander("Filter by client (optional)", expanded=False):
-                selected_clients = st.multiselect(
-                    "Show only these clients",
+            st.markdown("---")
+            
+            # Client filter
+            with st.expander("🔍 Filter by Client"):
+                selected = st.multiselect(
+                    "Select clients to show",
                     options=sorted(set(m.client for m in matches)),
-                    default=[]
+                    key="client_filter"
                 )
-                matches_to_show = [m for m in matches if (not selected_clients or m.client in selected_clients)]
-            # Render cards
-            for i, m in enumerate(matches_to_show, start=1):
-                render_match_card(m)
-                if i % 10 == 0:
-                    st.divider()
-            if not matches_to_show:
-                st.info("No matches after applying filters.")
-        else:
-            st.markdown("""
-                <div class="empty-state">
-                    <div class="empty-state-icon">📰</div>
-                    <h3>No mentions found</h3>
-                    <p>Try increasing the look-back window, adding more feeds, or lowering the minimum relevance.</p>
+            
+            display_matches = matches if not selected else [m for m in matches if m.client in selected]
+            
+            if selected:
+                st.info(f"Showing {len(display_matches)} of {len(matches)} matches")
+            
+            # Export
+            df = pd.DataFrame([vars(m) for m in display_matches])
+            csv = df.to_csv(index=False)
+            st.download_button("📥 Download CSV", csv, f"mentions_{datetime.now().strftime('%Y%m%d')}.csv")
+            
+            st.markdown("---")
+            
+            # Display cards
+            for match in display_matches:
+                # Determine card styling based on relevance
+                if match.relevance_score >= 3.5:
+                    card_class = "match-card-high"
+                    badge_class = "relevance-high"
+                elif match.relevance_score >= 2.0:
+                    card_class = "match-card-medium"
+                    badge_class = "relevance-medium"
+                else:
+                    card_class = "match-card-low"
+                    badge_class = "relevance-low"
+                
+                st.markdown(f"""
+                <div class="match-card {card_class}">
+                    <h3 style="margin-top: 0; margin-bottom: 0.5rem;">
+                        {html.escape(match.title)}
+                    </h3>
+                    <div style="margin-bottom: 0.75rem; color: #718096; font-size: 0.875rem;">
+                        <strong>🎯 {html.escape(match.client)}</strong> • 
+                        📰 {html.escape(match.domain)} • 
+                        📅 {html.escape(match.published)} •
+                        <span class="relevance-badge {badge_class}">Relevance: {match.relevance_score:.1f}</span>
+                    </div>
+                    <p style="color: #4a5568; line-height: 1.6; margin-bottom: 1rem;">
+                        {html.escape(match.description)}
+                    </p>
+                    <a href="{match.link}" target="_blank" rel="noopener noreferrer" class="article-link">
+                        Read Article →
+                    </a>
                 </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+        else:
+            st.info("No matches found. Try adjusting the filters.")
     else:
-        st.subheader("How it works")
-        st.markdown("""
-        1. This app always scans **all preset clients** (no need to pick manually).  
-        2. Choose your **feeds** (use curated defaults and/or add your own).  
-        3. Click **Scan Feeds** to fetch and analyze recent items.  
-        4. Review the **cards**, adjust the **relevance filter**, and **export CSV**.
-        """)
-        st.info("Tip: Add more RSS/Atom feeds in the sidebar to widen coverage.")
+        st.info("👈 Configure settings in the sidebar and click 'Start Scan'")
 
 if __name__ == "__main__":
     main()
