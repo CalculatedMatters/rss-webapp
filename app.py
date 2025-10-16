@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 Client Mentions Monitor - Premium UI/UX Edition
-Beautiful, modern interface for monitoring client mentions across music news feeds
 """
 
 import streamlit as st
@@ -45,7 +44,11 @@ CURATED_DEFAULT_FEEDS = [
     "https://www.theguardian.com/music/australian-music/rss",
     "https://australianmusician.com.au/feed/",
     "https://www.noise11.com/feed/",
+    "https://au.rollingstone.com/feed/"
+    "https://www.cutcommonmag.com/feed/",
     "https://au.rollingstone.com/feed/",
+    "https://au.rollingstone.com/music/feed/",
+    "https://thehordern.com.au/feed/",
 ]
 
 DEFAULT_CLIENTS = [
@@ -437,7 +440,12 @@ def main():
         st.subheader("Clients to Monitor")
         st.success(f"Monitoring {len(DEFAULT_CLIENTS)} preset clients")
         with st.expander("View client list"):
-            st.write(", ".join(DEFAULT_CLIENTS[:10]) + "...")
+            # Create a scrollable container with all clients
+            client_list_html = "<div style='max-height: 400px; overflow-y: auto; padding: 10px; background: #f7fafc; border-radius: 8px;'>"
+            for i, client in enumerate(DEFAULT_CLIENTS, 1):
+                client_list_html += f"<div style='padding: 4px 0; border-bottom: 1px solid #e2e8f0;'>{i}. {html.escape(client)}</div>"
+            client_list_html += "</div>"
+            st.markdown(client_list_html, unsafe_allow_html=True)
         
         st.subheader("Settings")
         days = st.slider("Days to look back", 1, 30, 7)
