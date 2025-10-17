@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Client Mentions Monitor - Premium UI/UX Edition
+Beautiful, modern interface for monitoring client mentions across music news feeds
 """
 
 import streamlit as st
@@ -459,6 +460,7 @@ def main():
             if st.button("🗑️ Clear Results", use_container_width=True):
                 st.session_state.matches = None
                 st.session_state.scan_time = None
+                st.session_state.num_feeds = 0
                 st.rerun()
     
     # Main content
@@ -503,6 +505,10 @@ def main():
                     options=sorted(set(m.client for m in matches)),
                     key="client_filter"
                 )
+                if selected:
+                    if st.button("🔄 Clear Filter", key="clear_filter"):
+                        st.session_state.client_filter = []
+                        st.rerun()
             
             display_matches = matches if not selected else [m for m in matches if m.client in selected]
             
