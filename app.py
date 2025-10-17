@@ -45,11 +45,7 @@ CURATED_DEFAULT_FEEDS = [
     "https://www.theguardian.com/music/australian-music/rss",
     "https://australianmusician.com.au/feed/",
     "https://www.noise11.com/feed/",
-    "https://au.rollingstone.com/feed/"
-    "https://www.cutcommonmag.com/feed/",
     "https://au.rollingstone.com/feed/",
-    "https://au.rollingstone.com/music/feed/",
-    "https://thehordern.com.au/feed/",
 ]
 
 DEFAULT_CLIENTS = [
@@ -455,6 +451,13 @@ def main():
         min_relevance = st.slider("Minimum relevance", 1.0, 5.0, 1.0, 0.5)
         
         run_button = st.button("🚀 Start Scan", use_container_width=True)
+        
+        if st.session_state.matches is not None:
+            if st.button("🗑️ Clear Scan", use_container_width=True):
+                st.session_state.matches = None
+                st.session_state.scan_time = None
+                st.session_state.num_feeds = 0
+                st.rerun()
     
     # Main content
     if run_button:
@@ -491,6 +494,13 @@ def main():
         if matches:
             st.markdown("---")
             
+            # Show All button (always visible when there are results)
+            col1, col2 = st.columns([1, 3])
+            with col1:
+                if st.button("🔄 Show All", key="show_all", use_container_width=True):
+                    st.session_state.client_filter = []
+                    st.rerun()
+            
             # Client filter
             with st.expander("🔍 Filter by Client"):
                 selected = st.multiselect(
@@ -498,24 +508,6 @@ def main():
                     options=sorted(set(m.client for m in matches)),
                     key="client_filter"
                 )
-                if selected:
-                    col_a, col_b = st.columns(2)
-                    with col_a:
-                        if st.button("🔄 Show All", key="clear_filter", use_container_width=True):
-                            st.session_state.client_filter = []
-                            st.rerun()
-                    with col_b:
-                        if st.button("🗑️ Clear Scan", key="clear_results", use_container_width=True):
-                            st.session_state.matches = None
-                            st.session_state.scan_time = None
-                            st.session_state.num_feeds = 0
-                            st.rerun()
-                else:
-                    if st.button("🗑️ Clear Scan", key="clear_results_no_filter", use_container_width=True):
-                        st.session_state.matches = None
-                        st.session_state.scan_time = None
-                        st.session_state.num_feeds = 0
-                        st.rerun()
             
             display_matches = matches if not selected else [m for m in matches if m.client in selected]
             
