@@ -45,7 +45,10 @@ CURATED_DEFAULT_FEEDS = [
     "https://www.theguardian.com/music/australian-music/rss",
     "https://australianmusician.com.au/feed/",
     "https://www.noise11.com/feed/",
+    "https://www.cutcommonmag.com/feed/",
     "https://au.rollingstone.com/feed/",
+    "https://au.rollingstone.com/music/feed/",
+    "https://thehordern.com.au/feed/",
 ]
 
 DEFAULT_CLIENTS = [
@@ -560,3 +563,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
