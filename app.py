@@ -455,13 +455,6 @@ def main():
         min_relevance = st.slider("Minimum relevance", 1.0, 5.0, 1.0, 0.5)
         
         run_button = st.button("🚀 Start Scan", use_container_width=True)
-        
-        if st.session_state.matches is not None:
-            if st.button("🗑️ Clear Results", use_container_width=True):
-                st.session_state.matches = None
-                st.session_state.scan_time = None
-                st.session_state.num_feeds = 0
-                st.rerun()
     
     # Main content
     if run_button:
@@ -506,8 +499,22 @@ def main():
                     key="client_filter"
                 )
                 if selected:
-                    if st.button("🔄 Clear Filter", key="clear_filter"):
-                        st.session_state.client_filter = []
+                    col_a, col_b = st.columns(2)
+                    with col_a:
+                        if st.button("🔄 Show All", key="clear_filter", use_container_width=True):
+                            st.session_state.client_filter = []
+                            st.rerun()
+                    with col_b:
+                        if st.button("🗑️ Clear Scan", key="clear_results", use_container_width=True):
+                            st.session_state.matches = None
+                            st.session_state.scan_time = None
+                            st.session_state.num_feeds = 0
+                            st.rerun()
+                else:
+                    if st.button("🗑️ Clear Scan", key="clear_results_no_filter", use_container_width=True):
+                        st.session_state.matches = None
+                        st.session_state.scan_time = None
+                        st.session_state.num_feeds = 0
                         st.rerun()
             
             display_matches = matches if not selected else [m for m in matches if m.client in selected]
