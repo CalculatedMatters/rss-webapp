@@ -48,9 +48,9 @@ CURATED_DEFAULT_FEEDS = [
     "https://www.cutcommonmag.com/feed/",
     "https://au.rollingstone.com/feed/",
     "https://au.rollingstone.com/music/feed/",
-    "https://thehordern.com.au/feed/"
-    "https://musicfeeds.com.au/feed/"
-    "https://www.abc.net.au/listen/doublej/feed"
+    "https://thehordern.com.au/feed/",
+    "https://musicfeeds.com.au/feed/",
+    "https://www.abc.net.au/listen/doublej/feed",
     "https://theaureview.com/feed/",
 ]
 
@@ -566,5 +566,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
